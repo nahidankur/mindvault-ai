@@ -1,6 +1,12 @@
 import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import * as schema from './schema';
+
+// Load root .env file
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config();
 
 export type DrizzleDatabase = PostgresJsDatabase<typeof schema>;
 
@@ -15,7 +21,7 @@ export function createDatabaseClient(
   const connectionString =
     options.connectionString ||
     process.env.DATABASE_URL ||
-    'postgresql://mindvault:mindvault_password@localhost:5432/mindvault_db?sslmode=disable';
+    'postgresql://mindvault:mindvault_password@localhost:5433/mindvault_db?sslmode=disable';
 
   const client = postgres(connectionString, {
     max: options.max || 10,

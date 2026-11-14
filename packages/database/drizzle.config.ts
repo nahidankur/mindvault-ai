@@ -8,7 +8,7 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://mindvault:mindvault_password@localhost:5432/mindvault_db?sslmode=disable',
+    url: process.env.DATABASE_URL || 'postgresql://mindvault:mindvault_password@localhost:5433/mindvault_db?sslmode=disable',
   },
   verbose: true,
   strict: true,
