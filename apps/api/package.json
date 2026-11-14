@@ -13,9 +13,11 @@
     "check-types": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "eval:rag": "ts-node test/rag-evaluation/evaluate.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@mindvault/database": "workspace:*",
     "@mindvault/shared": "workspace:*",
     "@nestjs/common": "^10.4.15",
