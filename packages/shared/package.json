@@ -1,0 +1,15 @@
+{
+  "name": "@mindvault/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "lint": "echo 'Linting @mindvault/shared...'"
+  },
+  "devDependencies": {
+    "@mindvault/tsconfig": "workspace:*",
+    "typescript": "^5.8.2"
+  }
+}
