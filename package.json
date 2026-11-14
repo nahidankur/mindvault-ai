@@ -9,6 +9,9 @@
     "check-types": "turbo check-types",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules",
+    "db:migrate": "pnpm --filter @mindvault/database db:migrate",
+    "db:seed": "pnpm --filter @mindvault/database db:seed",
+    "eval:rag": "pnpm --filter @mindvault/api eval:rag",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f"
