@@ -1,5 +1,7 @@
+'use client';
+
 import { create } from 'zustand';
-import { MessageSourceCitation, UserProfile } from '@mindvault/shared';
+import { MessageSourceCitation, UserProfile, ConversationSummary } from '@mindvault/shared';
 
 interface AppState {
   user: UserProfile | null;
@@ -16,6 +18,12 @@ interface AppState {
 
   isMobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
+
+  // Global Chat Conversations State
+  conversations: ConversationSummary[];
+  setConversations: (conversations: ConversationSummary[]) => void;
+  activeConversationId: string | null;
+  setActiveConversationId: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -37,4 +45,10 @@ export const useAppStore = create<AppState>((set) => ({
 
   isMobileSidebarOpen: false,
   setMobileSidebarOpen: (open) => set({ isMobileSidebarOpen: open }),
+
+  conversations: [],
+  setConversations: (conversations) => set({ conversations }),
+
+  activeConversationId: null,
+  setActiveConversationId: (id) => set({ activeConversationId: id }),
 }));

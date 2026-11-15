@@ -12,10 +12,6 @@ import {
   Sparkles,
   RefreshCw,
   Plus,
-  MessageSquare,
-  Trash2,
-  History,
-  X,
   Compass,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -28,41 +24,38 @@ interface ChatMessageUI {
 }
 
 export function ChatView() {
-  const { setSelectedCitation } = useAppStore();
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const {
+    setSelectedCitation,
+    activeConversationId,
+    setActiveConversationId,
+    conversations,
+    setConversations,
+  } = useAppStore();
+
   const [messages, setMessages] = useState<ChatMessageUI[]>([]);
   const [inputQuestion, setInputQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // If there are conversations and no active chat selected, pick the latest one
   useEffect(() => {
-    loadConversations();
-  }, []);
+    if (!activeConversationId && conversations.length > 0) {
+      setActiveConversationId(conversations[0].id);
+    }
+  }, [conversations, activeConversationId, setActiveConversationId]);
 
+  // Load messages when activeConversationId changes
   useEffect(() => {
     if (activeConversationId) {
       loadMessages(activeConversationId);
+    } else {
+      setMessages([]);
     }
   }, [activeConversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
-
-  const loadConversations = async () => {
-    try {
-      const data = await apiRequest<ConversationSummary[]>('/chat/conversations');
-      setConversations(data || []);
-      // If we don't have an active conversation and there is history, select the newest
-      if (data && data.length > 0 && !activeConversationId) {
-        setActiveConversationId(data[0].id);
-      }
-    } catch {
-      // Offline / Unauthenticated
-    }
-  };
 
   const loadMessages = async (convId: string) => {
     try {
@@ -73,37 +66,14 @@ export function ChatView() {
     }
   };
 
-  const handleStartNewChat = () => {
+  const handleNewChat = () => {
+    // If we are already on an empty new chat with no messages, do nothing!
+    if (!activeConversationId && messages.length === 0) {
+      return;
+    }
+    // Switch to empty new chat state without creating anything in DB yet
     setActiveConversationId(null);
     setMessages([]);
-    setIsHistoryDrawerOpen(false);
-  };
-
-  const handleSelectConversation = (convId: string) => {
-    setActiveConversationId(convId);
-    setIsHistoryDrawerOpen(false);
-  };
-
-  const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this chat conversation?')) return;
-
-    try {
-      await apiRequest(`/chat/conversations/${convId}`, { method: 'DELETE' });
-      const remaining = conversations.filter((c) => c.id !== convId);
-      setConversations(remaining);
-
-      if (activeConversationId === convId) {
-        if (remaining.length > 0) {
-          setActiveConversationId(remaining[0].id);
-        } else {
-          setActiveConversationId(null);
-          setMessages([]);
-        }
-      }
-    } catch (err: any) {
-      alert(`Could not delete chat: ${err?.message}`);
-    }
   };
 
   const handleSend = async (e?: React.FormEvent, promptOverride?: string) => {
@@ -114,11 +84,11 @@ export function ChatView() {
     let targetConvId = activeConversationId;
     let isBrandNewConversation = false;
 
-    // If starting a fresh chat, create the conversation first
+    // Only create a new conversation thread in DB when the user actually submits their first message!
     if (!targetConvId) {
       isBrandNewConversation = true;
       try {
-        const newConv = await apiRequest<any>('/chat/conversations', {
+        const newConv = await apiRequest<ConversationSummary>('/chat/conversations', {
           method: 'POST',
           body: JSON.stringify({
             title: textToSend.length > 35 ? `${textToSend.slice(0, 32)}...` : textToSend,
@@ -126,7 +96,7 @@ export function ChatView() {
         });
         targetConvId = newConv.id;
         setActiveConversationId(newConv.id);
-        setConversations((prev) => [newConv, ...prev]);
+        setConversations([newConv, ...conversations]);
       } catch (err: any) {
         alert(`Failed to create conversation: ${err?.message}`);
         return;
@@ -160,9 +130,12 @@ export function ChatView() {
 
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // If it was a brand new conversation, reload conversation list to display auto-generated title
+      // If it was a brand new conversation, reload conversation list from backend
+      // so that the auto-generated title from backend appears in the left sidebar
       if (isBrandNewConversation) {
-        loadConversations();
+        apiRequest<ConversationSummary[]>('/chat/conversations')
+          .then((updatedList) => setConversations(updatedList || []))
+          .catch(() => {});
       }
     } catch (err: any) {
       setMessages((prev) => [
@@ -178,283 +151,163 @@ export function ChatView() {
     }
   };
 
-  // Reusable Chat History Sidebar Content
-  const renderHistoryContent = (isMobile = false) => (
-    <div className="flex flex-col h-full bg-slate-950">
-      {/* Sidebar Header with New Chat Button */}
-      <div className="p-3 sm:p-4 border-b border-slate-800/80 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <History className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Chat History</span>
-          </div>
-
-          {isMobile && (
-            <button
-              onClick={() => setIsHistoryDrawerOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-              aria-label="Close chat history"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+  return (
+    <div className="flex-1 flex flex-col h-[calc(100dvh-3.5rem)] md:h-screen bg-slate-950 text-slate-100 overflow-hidden">
+      {/* Top Header */}
+      <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur shrink-0">
+        <div className="flex items-center gap-2 min-w-0 mr-2">
+          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="text-sm font-semibold text-slate-200 truncate">
+            Grounded Knowledge Assistant
+          </span>
+          <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono shrink-0">
+            Zero Hallucination
+          </span>
         </div>
 
         <button
-          onClick={handleStartNewChat}
-          className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center justify-center gap-2 transition shadow-sm shadow-indigo-600/30"
+          onClick={handleNewChat}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30 shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>New Chat</span>
         </button>
-      </div>
+      </header>
 
-      {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {conversations.length === 0 ? (
-          <div className="py-8 px-4 text-center text-xs text-slate-500 space-y-1">
-            <MessageSquare className="w-6 h-6 mx-auto text-slate-700 mb-2" />
-            <p>No chat history yet.</p>
-            <p className="text-[11px] text-slate-600">Start asking questions to build your history.</p>
+      {/* Messages List Area */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto p-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-lg shadow-indigo-500/5">
+              <Bot className="w-6 h-6" />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-100">
+              Ask anything about your saved knowledge
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+              Every answer is grounded strictly in your personal vault notes with hybrid pgvector search and verified source citations.
+            </p>
+
+            {/* Starter Prompt Cards */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
+              <button
+                type="button"
+                onClick={() => handleSend(undefined, 'What topics are covered in my saved knowledge notes?')}
+                className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 hover:border-indigo-500/40 transition text-xs text-slate-300 space-y-1 group"
+              >
+                <div className="flex items-center gap-1.5 text-indigo-400 text-[11px] font-medium">
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Explore notes</span>
+                </div>
+                <p className="text-slate-400 text-[11px] line-clamp-2">
+                  &quot;What topics are covered in my saved knowledge notes?&quot;
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSend(undefined, 'Provide a concise summary of my latest research notes.')}
+                className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 hover:border-indigo-500/40 transition text-xs text-slate-300 space-y-1 group"
+              >
+                <div className="flex items-center gap-1.5 text-cyan-400 text-[11px] font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Summarize knowledge</span>
+                </div>
+                <p className="text-slate-400 text-[11px] line-clamp-2">
+                  &quot;Provide a concise summary of my latest research notes.&quot;
+                </p>
+              </button>
+            </div>
           </div>
         ) : (
-          conversations.map((conv) => {
-            const isActive = activeConversationId === conv.id;
-            return (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl md:max-w-3xl ${
+                msg.role === 'user' ? 'ml-auto justify-end' : 'mr-auto justify-start'
+              }`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
+                  <Bot className="w-4 h-4" />
+                </div>
+              )}
+
               <div
-                key={conv.id}
-                onClick={() => handleSelectConversation(conv.id)}
-                className={`group flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition cursor-pointer ${
-                  isActive
-                    ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/30 font-medium'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                className={`rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed overflow-hidden ${
+                  msg.role === 'user'
+                    ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
+                    : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <MessageSquare
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-400'
-                    }`}
-                  />
-                  <span className="truncate">{conv.title || 'Conversation'}</span>
+                <div className="prose prose-invert prose-xs sm:prose-sm max-w-none break-words">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
 
-                <button
-                  onClick={(e) => handleDeleteConversation(e, conv.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition shrink-0"
-                  title="Delete chat"
-                  aria-label="Delete chat"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {/* Citations Pill Bar */}
+                {msg.sources && msg.sources.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">
+                      Sources:
+                    </span>
+                    {msg.sources.map((source) => (
+                      <button
+                        key={source.chunkId}
+                        onClick={() => setSelectedCitation(source)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
+                        title={source.snippet}
+                      >
+                        <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
+                        <span>Source {source.rank}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            );
-          })
+
+              {msg.role === 'user' && (
+                <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 mt-1 text-slate-300">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+          ))
         )}
-      </div>
 
-      {/* Bottom Info */}
-      <div className="p-3 border-t border-slate-800/80 text-[11px] text-slate-500 font-mono text-center">
-        <span>{conversations.length} saved {conversations.length === 1 ? 'chat' : 'chats'}</span>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex-1 flex h-[calc(100dvh-3.5rem)] md:h-screen bg-slate-950 text-slate-100 overflow-hidden">
-      {/* 1. Desktop Persistent Left Chat History Sidebar (hidden on mobile, visible on md+) */}
-      <aside className="hidden md:flex md:w-64 lg:w-72 flex-col border-r border-slate-800 bg-slate-950/70 shrink-0 h-full">
-        {renderHistoryContent(false)}
-      </aside>
-
-      {/* 2. Mobile Chat History Drawer Overlay (visible when toggled on mobile) */}
-      {isHistoryDrawerOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setIsHistoryDrawerOpen(false)}
-            aria-hidden="true"
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Chat History Drawer"
-            className="relative z-50 w-72 max-w-[85vw] bg-slate-950 border-r border-slate-800 flex flex-col shadow-2xl animate-in slide-in-from-left duration-200 h-full"
-          >
-            {renderHistoryContent(true)}
-          </aside>
-        </div>
-      )}
-
-      {/* 3. Main Chat Viewport */}
-      <div className="flex-1 flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
-        {/* Top Header */}
-        <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur shrink-0">
-          <div className="flex items-center gap-2 min-w-0 mr-2">
-            {/* Mobile History Toggle Button */}
-            <button
-              onClick={() => setIsHistoryDrawerOpen(true)}
-              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition -ml-1 mr-1 flex items-center gap-1.5"
-              aria-label="Open chat history"
-              title="Chat history"
-            >
-              <History className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs text-slate-300">Chats</span>
-            </button>
-
-            <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 hidden sm:inline" />
-            <span className="text-sm font-semibold text-slate-200 truncate">
-              Grounded Assistant
-            </span>
-            <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono shrink-0">
-              Zero Hallucination
-            </span>
+        {isLoading && (
+          <div className="flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl mr-auto">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2 text-xs text-slate-400">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
+              <span>Verifying citations & generating response...</span>
+            </div>
           </div>
+        )}
 
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Form */}
+      <div className="p-3 sm:p-4 border-t border-slate-800/80 bg-slate-900/30 shrink-0">
+        <form onSubmit={handleSend} className="max-w-3xl mx-auto flex gap-2">
+          <input
+            type="text"
+            value={inputQuestion}
+            onChange={(e) => setInputQuestion(e.target.value)}
+            placeholder="Ask a question about your saved notes..."
+            className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[42px]"
+          />
           <button
-            onClick={handleStartNewChat}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition shrink-0"
+            type="submit"
+            disabled={!inputQuestion.trim() || isLoading}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition flex items-center justify-center shadow-md shadow-indigo-600/30 min-h-[42px] min-w-[42px]"
+            aria-label="Send message"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Chat</span>
+            <Send className="w-4 h-4" />
           </button>
-        </header>
-
-        {/* Messages List Area */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto p-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-lg shadow-indigo-500/5">
-                <Bot className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-100">
-                Ask anything about your saved knowledge
-              </h3>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                Answers are generated strictly using your saved notes with pgvector similarity search, verified chunk citations, and anti-hallucination guardrails.
-              </p>
-
-              {/* Starter Prompt Cards */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left">
-                <button
-                  type="button"
-                  onClick={() => handleSend(undefined, 'What topics are covered in my saved knowledge notes?')}
-                  className="p-3 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 hover:border-indigo-500/40 transition text-xs text-slate-300 space-y-1 group"
-                >
-                  <div className="flex items-center gap-1.5 text-indigo-400 text-[11px] font-medium">
-                    <Compass className="w-3.5 h-3.5" />
-                    <span>Explore notes</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] line-clamp-2">
-                    &quot;What topics are covered in my saved knowledge notes?&quot;
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSend(undefined, 'Provide a concise summary of my latest research notes.')}
-                  className="p-3 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900 hover:border-indigo-500/40 transition text-xs text-slate-300 space-y-1 group"
-                >
-                  <div className="flex items-center gap-1.5 text-cyan-400 text-[11px] font-medium">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Summarize knowledge</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] line-clamp-2">
-                    &quot;Provide a concise summary of my latest research notes.&quot;
-                  </p>
-                </button>
-              </div>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl md:max-w-3xl ${
-                  msg.role === 'user' ? 'ml-auto justify-end' : 'mr-auto justify-start'
-                }`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
-                    <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </div>
-                )}
-
-                <div
-                  className={`rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm leading-relaxed overflow-hidden ${
-                    msg.role === 'user'
-                      ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
-                  }`}
-                >
-                  <div className="prose prose-invert prose-xs sm:prose-sm max-w-none break-words">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
-
-                  {/* Citations Pill Bar */}
-                  {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">
-                        Sources:
-                      </span>
-                      {msg.sources.map((source) => (
-                        <button
-                          key={source.chunkId}
-                          onClick={() => setSelectedCitation(source)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
-                          title={source.snippet}
-                        >
-                          <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
-                          <span>Source {source.rank}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {msg.role === 'user' && (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 mt-1 text-slate-300">
-                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-
-          {isLoading && (
-            <div className="flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl mr-auto">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
-                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </div>
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-bl-none px-3.5 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 text-xs text-slate-400">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
-                <span>Verifying citations & generating response...</span>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Form */}
-        <div className="p-2.5 sm:p-4 border-t border-slate-800/80 bg-slate-900/30 shrink-0">
-          <form onSubmit={handleSend} className="max-w-3xl mx-auto flex gap-2">
-            <input
-              type="text"
-              value={inputQuestion}
-              onChange={(e) => setInputQuestion(e.target.value)}
-              placeholder="Ask a question about your saved notes..."
-              className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[42px]"
-            />
-            <button
-              type="submit"
-              disabled={!inputQuestion.trim() || isLoading}
-              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition flex items-center justify-center shadow-md shadow-indigo-600/30 min-h-[42px] min-w-[42px]"
-              aria-label="Send message"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
+        </form>
       </div>
     </div>
   );

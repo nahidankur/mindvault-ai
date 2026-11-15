@@ -1,4 +1,10 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/api-client';
+import { useAppStore } from '@/lib/store';
 import { APP_NAME, APP_DESCRIPTION } from '@mindvault/shared';
 import {
   Sparkles,
@@ -7,12 +13,26 @@ import {
   Cpu,
   ArrowRight,
   LogIn,
-  Layers,
-  CheckCircle2,
   Lock,
 } from 'lucide-react';
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user } = useAppStore();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      setIsAuthenticated(true);
+      // Automatically redirect authenticated visitors directly to dashboard
+      router.replace('/dashboard');
+    } else {
+      setIsCheckingAuth(false);
+    }
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Navigation Bar */}
@@ -28,21 +48,33 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </Link>
+            {!isAuthenticated ? (
+              <>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition flex items-center gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </Link>
 
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
-            >
-              <span>Open Vault</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                >
+                  <span>Open Vault</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+              >
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -75,28 +107,32 @@ export default function HomePage() {
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
 
-          <Link
-            href="/login"
-            className="px-6 py-3 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-200 font-medium text-sm transition flex items-center gap-2"
-          >
-            <Lock className="w-4 h-4 text-indigo-400" />
-            <span>Sign In / Demo Login</span>
-          </Link>
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="px-6 py-3 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-200 font-medium text-sm transition flex items-center gap-2"
+            >
+              <Lock className="w-4 h-4 text-indigo-400" />
+              <span>Sign In / Demo Login</span>
+            </Link>
+          )}
         </div>
 
-        {/* Quick Demo Credentials Box */}
-        <div className="mt-8 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 max-w-md w-full text-xs text-slate-400 flex items-center justify-between">
-          <div className="text-left font-mono">
-            <p className="text-slate-300 font-semibold">Demo Account:</p>
-            <p className="text-[11px] text-slate-400">demo@mindvault.ai • DemoPassword123!</p>
+        {/* Quick Demo Credentials Box (only for visitors not signed in) */}
+        {!isAuthenticated && (
+          <div className="mt-8 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 max-w-md w-full text-xs text-slate-400 flex items-center justify-between">
+            <div className="text-left font-mono">
+              <p className="text-slate-300 font-semibold">Demo Account:</p>
+              <p className="text-[11px] text-slate-400">demo@mindvault.ai • DemoPassword123!</p>
+            </div>
+            <Link
+              href="/login"
+              className="px-2.5 py-1 rounded bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium transition"
+            >
+              Auto-fill
+            </Link>
           </div>
-          <Link
-            href="/login"
-            className="px-2.5 py-1 rounded bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-medium transition"
-          >
-            Auto-fill
-          </Link>
-        </div>
+        )}
 
         {/* Feature Highlights Grid */}
         <div className="grid grid-cols-1 gap-4 mt-16 max-w-4xl sm:grid-cols-3 text-left w-full">
