@@ -13,10 +13,10 @@ export class GeminiService {
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('GEMINI_API_KEY');
-    this.chatModel = this.configService.get<string>('GEMINI_CHAT_MODEL', 'gemini-2.0-flash');
+    this.chatModel = this.configService.get<string>('GEMINI_CHAT_MODEL', 'gemini-3.5-flash');
     this.embeddingModel = this.configService.get<string>(
       'GEMINI_EMBEDDING_MODEL',
-      'text-embedding-004',
+      'gemini-embedding-001',
     );
 
     if (this.apiKey && this.apiKey !== 'your_gemini_api_key_here') {
@@ -125,7 +125,10 @@ export class GeminiService {
     while (attempts < maxAttempts) {
       try {
         const promises = batch.map(async (text) => {
-          const res = await model.embedContent(text);
+          const res = await model.embedContent({
+            content: { parts: [{ text }] },
+            outputDimensionality: RAG_CONFIG.VECTOR_DIMENSIONS,
+          } as any);
           return res.embedding.values;
         });
 
