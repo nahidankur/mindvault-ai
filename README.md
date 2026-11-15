@@ -289,13 +289,121 @@ pnpm eval:rag
 
 ## ☁️ Free-Tier Cloud Deployment Guide
 
-| Component | Recommended Free Host | Setup Instructions |
+MindVault AI is architected to run **100% free forever** on production-ready cloud free tiers without requiring a credit card or cloud bills.
+
+### Cloud Architecture Overview
+
+| Layer | Provider | Free Tier Specification |
 | :--- | :--- | :--- |
-| **Frontend** | **Vercel** | Connect GitHub repo. Root directory: `.`. Vercel automatically detects `vercel.json` and builds `@mindvault/web`. Set `NEXT_PUBLIC_API_URL` to your Render API URL. |
-| **Backend API** | **Render** | Create a free Web Service on Render using the included [render.yaml](file:///home/nahid/Music/mindvault-ai/render.yaml). Healthcheck at `/api/v1/health`. |
-| **Database** | **Neon** | Create a free serverless PostgreSQL 16 project on [Neon.tech](https://neon.tech). Run `CREATE EXTENSION vector;`. Copy connection string to `DATABASE_URL`. |
-| **Task Queue** | **Aiven Redis** | Create a free Redis project on [Aiven.io](https://aiven.io). Copy connection URI to `REDIS_URL`. |
-| **AI LLM & Vectors** | **Google AI Studio** | Generate a free API key at [ai.google.dev](https://ai.google.dev) and set `GEMINI_API_KEY`. |
+| **Frontend** | **Vercel** | Edge Network, unlimited preview & production deployments for Next.js 16.4 |
+| **Backend API** | **Render** | Free Web Service (512MB RAM, automated TLS, healthcheck) |
+| **Database** | **Neon** | Serverless PostgreSQL 16 with native `pgvector` & GIN FTS support |
+| **Task Queue** | **Upstash / Aiven** | Serverless Redis (TCP connection for BullMQ async ingestion) |
+| **AI LLM & Vectors** | **Google AI Studio** | `gemini-3.5-flash` & `gemini-embedding-001` (15 RPM free tier) |
+
+---
+
+### Step 1: Database Setup (Neon PostgreSQL + pgvector)
+
+1. Sign up for a free account at [Neon.tech](https://neon.tech) and create a project (PostgreSQL 16).
+2. Open the **SQL Editor** tab in Neon and enable the vector extension:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+3. Copy your Neon **Connection String** (e.g., `postgresql://user:password@ep-...neon.tech/neondb?sslmode=require`).
+4. Push database tables and seed demo data from your local machine:
+   ```bash
+   DATABASE_URL="<your_neon_connection_string>" pnpm db:push
+   DATABASE_URL="<your_neon_connection_string>" pnpm db:seed
+   ```
+   *(This initializes all tables, HNSW indexes, and pre-seeds the demo account `demo@mindvault.ai` / `DemoPassword123!`)*.
+
+---
+
+### Step 2: Asynchronous Queue Setup (Upstash / Aiven Redis)
+
+1. Create a free Redis instance on [Upstash.com](https://upstash.com) or [Aiven.io](https://aiven.io).
+2. Copy the standard **Redis Connection URL (TCP)**:
+   ```text
+   rediss://default:<password>@<host>:<port>
+   ```
+
+---
+
+### Step 3: Backend API Deployment (Render Web Service)
+
+1. Sign in to [Render.com](https://render.com) and click **New + > Web Service**.
+2. Connect your GitHub repository (`mindvault-ai`).
+3. Configure service parameters:
+   * **Name:** `mindvault-api`
+   * **Region:** Oregon (US West) or Frankfurt (EU)
+   * **Branch:** `main`
+   * **Root Directory:** `.` *(Keep root for monorepo resolution)*
+   * **Runtime:** `Node`
+   * **Build Command:**
+     ```bash
+     pnpm install --frozen-lockfile && pnpm build
+     ```
+   * **Start Command:**
+     ```bash
+     pnpm --filter @mindvault/api start:prod
+     ```
+   * **Plan:** `Free`
+   * **Health Check Path:** `/api/v1/health`
+4. Add the following **Environment Variables**:
+
+| Variable | Recommended Value | Notes |
+| :--- | :--- | :--- |
+| `NODE_ENV` | `production` | Production optimizations |
+| `PORT` | `10000` | Render default port |
+| `API_PREFIX` | `api/v1` | Global API prefix |
+| `DATABASE_URL` | *(Neon Connection String)* | From Step 1 |
+| `REDIS_URL` | *(Upstash/Aiven Connection URI)* | From Step 2 |
+| `GEMINI_API_KEY` | *(Your Google AI Studio Key)* | From [ai.google.dev](https://ai.google.dev) |
+| `GEMINI_CHAT_MODEL` | `gemini-3.5-flash` | High-speed grounded generative chat |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | 768-dim embeddings |
+| `JWT_SECRET` | *(Random 32+ character string)* | Session signing |
+| `CORS_ORIGIN` | `*` *(Update with Vercel URL after Step 4)* | Allowed client origin |
+
+5. Click **Create Web Service**. Once deployed, copy your service URL (e.g., `https://mindvault-api.onrender.com`).
+
+---
+
+### Step 4: Frontend Deployment (Vercel)
+
+> [!IMPORTANT]
+> **Crucial Monorepo Setting for Vercel:**
+> Because this is a `pnpm` monorepo, you **must set the Root Directory to `apps/web`** in Vercel settings so Vercel can detect Next.js.
+
+1. Go to [Vercel.com](https://vercel.com) and click **Add New > Project**.
+2. Import your GitHub repository (`mindvault-ai`).
+3. In the project configuration screen:
+   * **Framework Preset:** `Next.js`
+   * **Root Directory:** Click **Edit** and set to **`apps/web`**.
+   * **Crucial Checkbox:** Ensure **"Include source files outside of the Root Directory in the Build Step"** is **CHECKED** *(allows Vercel to access `@mindvault/shared` from the monorepo root)*.
+   * **Build and Output Settings:** Leave default *(the included `prebuild` hook will automatically compile `@mindvault/shared` before `next build`)*.
+4. Add **Environment Variables**:
+
+| Variable | Value |
+| :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | `https://<your-render-backend-url>/api/v1` |
+| `NEXT_PUBLIC_APP_NAME` | `MindVault AI` |
+
+5. Click **Deploy**. Vercel will build and assign your production domain (e.g., `https://mindvault-ai.vercel.app`).
+
+---
+
+### Step 5: Final Cross-Origin Connection
+
+1. Return to the **Render** dashboard for `mindvault-api`.
+2. Update the `CORS_ORIGIN` environment variable with your production Vercel URL:
+   ```text
+   CORS_ORIGIN=https://mindvault-ai.vercel.app
+   ```
+3. Visit your live Vercel URL and sign in using the demo account:
+   * **Email:** `demo@mindvault.ai`
+   * **Password:** `DemoPassword123!`
+4. Explore your fully cloud-hosted Grounded RAG Knowledge Vault!
 
 ---
 
