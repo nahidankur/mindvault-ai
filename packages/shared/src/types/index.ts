@@ -39,6 +39,10 @@ export interface KnowledgeItemSummary {
   updatedAt: string;
 }
 
+export interface KnowledgeItemDetail extends KnowledgeItemSummary {
+  content: string;
+}
+
 export interface KnowledgeChunkMetadata {
   heading?: string;
   charStart?: number;

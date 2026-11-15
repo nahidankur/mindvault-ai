@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api-client';
 import { KnowledgeItemSummary, CollectionSummary } from '@mindvault/shared';
+import { KnowledgeModal } from './knowledge-modal';
 import {
   FileText,
   Plus,
@@ -13,11 +14,13 @@ import {
   Trash2,
   RefreshCw,
   FolderPlus,
+  Eye,
 } from 'lucide-react';
 
 export function KnowledgeView() {
   const [items, setItems] = useState<KnowledgeItemSummary[]>([]);
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -229,11 +232,14 @@ export function KnowledgeView() {
             items.map((item) => (
               <div
                 key={item.id}
-                className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/80 transition-all flex items-center justify-between group"
+                onClick={() => setSelectedItemId(item.id)}
+                className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex items-center justify-between group cursor-pointer"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-200">{item.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">
+                      {item.title}
+                    </h3>
                     {item.status === 'READY' && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         <CheckCircle className="w-2.5 h-2.5" />
@@ -261,14 +267,33 @@ export function KnowledgeView() {
 
                 <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition">
                   <button
-                    onClick={() => handleReindex(item.id)}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedItemId(item.id);
+                    }}
+                    title="View & Edit note"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReindex(item.id);
+                    }}
                     title="Re-index item"
                     className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => handleDelete(item.id)}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
                     title="Delete item"
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
                   >
@@ -280,6 +305,18 @@ export function KnowledgeView() {
           )}
         </div>
       </div>
+
+      {/* Modal for Viewing & Editing Knowledge Item */}
+      <KnowledgeModal
+        itemId={selectedItemId}
+        collections={collections}
+        onClose={() => setSelectedItemId(null)}
+        onUpdated={() => loadData(false)}
+        onDeleted={() => {
+          setSelectedItemId(null);
+          loadData(false);
+        }}
+      />
     </div>
   );
 }
