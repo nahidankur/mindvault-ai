@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { getAuthToken, apiRequest } from '@/lib/api-client';
 import { useAppStore } from '@/lib/store';
 import { Sidebar } from '@/components/layout/sidebar';
-import { CitationDrawer } from '@/components/chat/citation-drawer';
 import { Menu, Sparkles } from 'lucide-react';
 import { APP_NAME } from '@mindvault/shared';
 
@@ -78,8 +77,6 @@ export default function DashboardLayout({
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">{children}</main>
       </div>
-
-      <CitationDrawer />
     </div>
   );
 }

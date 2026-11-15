@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api-client';
 import { KnowledgeItemSummary } from '@mindvault/shared';
 import { KnowledgeModal } from './knowledge-modal';
+import { DeleteConfirmModal } from '@/components/ui/delete-confirm-modal';
 import {
   FileText,
   Plus,
@@ -19,11 +20,14 @@ import {
 export function KnowledgeView() {
   const [items, setItems] = useState<KnowledgeItemSummary[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<KnowledgeItemSummary | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -50,6 +54,7 @@ export function KnowledgeView() {
     if (!title.trim() || !content.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    setFormError(null);
     try {
       await apiRequest('/knowledge', {
         method: 'POST',
@@ -63,19 +68,23 @@ export function KnowledgeView() {
       setIsCreating(false);
       loadData();
     } catch (err: any) {
-      alert(`Failed to save note: ${err.message}`);
+      setFormError(err.message || 'Failed to save note');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this note and its vector embeddings?')) return;
+  const confirmDeleteNote = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
     try {
-      await apiRequest(`/knowledge/${id}`, { method: 'DELETE' });
-      loadData();
-    } catch (err: any) {
-      alert(`Could not delete: ${err.message}`);
+      await apiRequest(`/knowledge/${itemToDelete.id}`, { method: 'DELETE' });
+      setItemToDelete(null);
+      loadData(false);
+    } catch {
+      setItemToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -83,8 +92,8 @@ export function KnowledgeView() {
     try {
       await apiRequest(`/knowledge/${id}/reindex`, { method: 'POST' });
       loadData();
-    } catch (err: any) {
-      alert(`Could not reindex: ${err.message}`);
+    } catch {
+      //
     }
   };
 
@@ -106,7 +115,10 @@ export function KnowledgeView() {
         </div>
 
         <button
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => {
+            setIsCreating(!isCreating);
+            setFormError(null);
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -134,6 +146,13 @@ export function KnowledgeView() {
               </div>
             </div>
 
+            {formError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <div className="w-full">
               <input
                 type="text"
@@ -157,7 +176,10 @@ export function KnowledgeView() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setIsCreating(false)}
+                onClick={() => {
+                  setIsCreating(false);
+                  setFormError(null);
+                }}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
               >
                 Cancel
@@ -262,7 +284,7 @@ export function KnowledgeView() {
                   </button>
 
                   <button
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => setItemToDelete(item)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
                     title="Delete note"
                   >
@@ -284,6 +306,15 @@ export function KnowledgeView() {
           setSelectedItemId(null);
           loadData(false);
         }}
+      />
+
+      {/* Modern CSS Confirmation Modal for Deletion */}
+      <DeleteConfirmModal
+        isOpen={!!itemToDelete}
+        itemName={itemToDelete?.title}
+        isDeleting={isDeleting}
+        onConfirm={confirmDeleteNote}
+        onCancel={() => setItemToDelete(null)}
       />
     </div>
   );

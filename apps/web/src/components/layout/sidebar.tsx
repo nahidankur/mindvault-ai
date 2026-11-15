@@ -65,7 +65,7 @@ export function Sidebar() {
 
   const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this chat?')) return;
+    // Direct 1-click delete without any confirmation modal
     try {
       await apiRequest(`/chat/conversations/${id}`, { method: 'DELETE' });
       const updated = conversations.filter((c) => c.id !== id);
@@ -73,8 +73,8 @@ export function Sidebar() {
       if (activeConversationId === id) {
         setActiveConversationId(null);
       }
-    } catch (err: any) {
-      alert(`Could not delete: ${err?.message}`);
+    } catch {
+      //
     }
   };
 

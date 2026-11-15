@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { apiRequest } from '@/lib/api-client';
 import { KnowledgeItemDetail } from '@mindvault/shared';
+import { DeleteConfirmModal } from '@/components/ui/delete-confirm-modal';
 import {
   X,
   Edit3,
@@ -36,6 +37,8 @@ export function KnowledgeModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<'preview' | 'raw'>('preview');
 
@@ -105,26 +108,31 @@ export function KnowledgeModal({
   const handleReindex = async () => {
     if (!item || isReindexing) return;
     setIsReindexing(true);
+    setError(null);
     try {
       await apiRequest(`/knowledge/${item.id}/reindex`, { method: 'POST' });
       await fetchItem(item.id);
       onUpdated();
     } catch (err: any) {
-      alert(`Could not reindex: ${err?.message}`);
+      setError(err?.message || 'Could not reindex note');
     } finally {
       setIsReindexing(false);
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDeleteNote = async () => {
     if (!item) return;
-    if (!confirm('Are you sure you want to permanently delete this note and all its embeddings?')) return;
+    setIsDeletingNote(true);
     try {
       await apiRequest(`/knowledge/${item.id}`, { method: 'DELETE' });
+      setShowDeleteConfirm(false);
       onDeleted(item.id);
       onClose();
     } catch (err: any) {
-      alert(`Could not delete: ${err?.message}`);
+      setError(err?.message || 'Could not delete note');
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeletingNote(false);
     }
   };
 
@@ -200,7 +208,7 @@ export function KnowledgeModal({
 
                 <button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
                   title="Delete note"
                 >
@@ -376,6 +384,15 @@ export function KnowledgeModal({
           </div>
         </div>
       </div>
+
+      {/* Modern CSS Confirmation Modal for Deletion */}
+      <DeleteConfirmModal
+        isOpen={showDeleteConfirm}
+        itemName={item?.title}
+        isDeleting={isDeletingNote}
+        onConfirm={confirmDeleteNote}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

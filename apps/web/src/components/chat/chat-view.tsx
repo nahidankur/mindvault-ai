@@ -3,12 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiRequest } from '@/lib/api-client';
 import { useAppStore } from '@/lib/store';
-import { MessageSourceCitation, ConversationSummary } from '@mindvault/shared';
+import { ConversationSummary } from '@mindvault/shared';
 import {
   Send,
   Bot,
   User,
-  Bookmark,
   Sparkles,
   RefreshCw,
   Plus,
@@ -20,12 +19,10 @@ interface ChatMessageUI {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  sources?: MessageSourceCitation[];
 }
 
 export function ChatView() {
   const {
-    setSelectedCitation,
     activeConversationId,
     setActiveConversationId,
     conversations,
@@ -36,34 +33,6 @@ export function ChatView() {
   const [inputQuestion, setInputQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Filter sources to only those actually cited in the assistant message content
-  const getCitedSources = (msg: ChatMessageUI): MessageSourceCitation[] => {
-    if (!msg.sources || msg.sources.length === 0) return [];
-
-    const citedRanks = new Set<number>();
-    const bracketMatches = msg.content.matchAll(/\[(?:Source\s*)?([0-9,\s]+)\]/gi);
-    for (const m of bracketMatches) {
-      const parts = m[1].split(',');
-      for (const p of parts) {
-        const num = parseInt(p.trim().replace(/^source\s*/i, ''), 10);
-        if (!isNaN(num)) citedRanks.add(num);
-      }
-    }
-
-    const plainMatches = msg.content.matchAll(/Source\s+(\d+)/gi);
-    for (const m of plainMatches) {
-      const num = parseInt(m[1], 10);
-      if (!isNaN(num)) citedRanks.add(num);
-    }
-
-    if (citedRanks.size > 0) {
-      const filtered = msg.sources.filter((s) => citedRanks.has(s.rank));
-      if (filtered.length > 0) return filtered;
-    }
-
-    return msg.sources;
-  };
 
   // Load messages when activeConversationId changes
   useEffect(() => {
@@ -88,11 +57,9 @@ export function ChatView() {
   };
 
   const handleNewChat = () => {
-    // If we are already on an empty new chat with no messages, do nothing!
     if (!activeConversationId && messages.length === 0) {
       return;
     }
-    // Switch to empty new chat state without creating anything in DB yet
     setActiveConversationId(null);
     setMessages([]);
   };
@@ -119,7 +86,14 @@ export function ChatView() {
         setActiveConversationId(newConv.id);
         setConversations([newConv, ...conversations]);
       } catch (err: any) {
-        alert(`Failed to create conversation: ${err?.message}`);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ Failed to create conversation: ${err?.message}`,
+          },
+        ]);
         return;
       }
     }
@@ -146,13 +120,12 @@ export function ChatView() {
         id: result.assistantMessage.id,
         role: 'assistant',
         content: result.assistantMessage.content,
-        sources: result.sources,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
 
       // If it was a brand new conversation, reload conversation list from backend
-      // so that the auto-generated title from backend appears in the left sidebar
+      // so that the auto-generated title appears in the sidebar
       if (isBrandNewConversation) {
         apiRequest<ConversationSummary[]>('/chat/conversations')
           .then((updatedList) => setConversations(updatedList || []))
@@ -170,6 +143,11 @@ export function ChatView() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper to remove in-text [Source X] tags for a completely clean view
+  const formatContent = (content: string) => {
+    return content.replace(/\[(?:Source\s*)?([0-9,\s]+)\]/gi, '').trim();
   };
 
   return (
@@ -206,7 +184,7 @@ export function ChatView() {
               Ask anything about your saved knowledge
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
-              Every answer is grounded strictly in your personal vault notes with hybrid pgvector search and verified source citations.
+              Every answer is grounded strictly in your personal vault notes with hybrid pgvector search.
             </p>
 
             {/* Starter Prompt Cards */}
@@ -262,33 +240,8 @@ export function ChatView() {
                 }`}
               >
                 <div className="prose prose-invert prose-xs sm:prose-sm max-w-none break-words">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown>{formatContent(msg.content)}</ReactMarkdown>
                 </div>
-
-                {/* Citations Pill Bar - ONLY display the sources cited in the answer */}
-                {(() => {
-                  const displayedSources = getCitedSources(msg);
-                  if (displayedSources.length === 0) return null;
-
-                  return (
-                    <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">
-                        Sources:
-                      </span>
-                      {displayedSources.map((source) => (
-                        <button
-                          key={source.chunkId}
-                          onClick={() => setSelectedCitation(source)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
-                          title={source.snippet}
-                        >
-                          <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
-                          <span>Source {source.rank}</span>
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })()}
               </div>
 
               {msg.role === 'user' && (
@@ -307,7 +260,7 @@ export function ChatView() {
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2 text-xs text-slate-400">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
-              <span>Verifying citations & generating response...</span>
+              <span>Generating grounded response...</span>
             </div>
           </div>
         )}
