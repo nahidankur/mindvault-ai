@@ -32,7 +32,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 flex flex-col justify-between border-r border-slate-800 bg-slate-950/70 backdrop-blur-md p-4 min-h-screen">
+    <aside className="w-64 flex flex-col justify-between border-r border-slate-800 bg-slate-950/70 backdrop-blur-md p-4 min-h-screen relative z-40">
       <div>
         {/* Brand */}
         <Link href="/dashboard" className="flex items-center gap-2 px-2 py-3 mb-6">

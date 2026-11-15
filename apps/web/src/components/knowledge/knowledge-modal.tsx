@@ -95,7 +95,7 @@ export function KnowledgeModal({
     setIsSaving(true);
     setError(null);
     try {
-      const updated = await apiRequest<KnowledgeItemDetail>(`/knowledge/${itemId}`, {
+      await apiRequest<KnowledgeItemDetail>(`/knowledge/${itemId}`, {
         method: 'PUT',
         body: JSON.stringify({
           title: title.trim(),
@@ -103,12 +103,10 @@ export function KnowledgeModal({
           collectionId: collectionId || null,
         }),
       });
-      setItem(updated);
-      setIsEditing(false);
       onUpdated();
+      onClose();
     } catch (err: any) {
       setError(err?.message || 'Failed to update note');
-    } finally {
       setIsSaving(false);
     }
   };
@@ -145,7 +143,7 @@ export function KnowledgeModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-y-0 right-0 left-0 md:left-64 z-30 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
