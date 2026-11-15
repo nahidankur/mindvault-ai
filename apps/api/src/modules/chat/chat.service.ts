@@ -143,7 +143,6 @@ export class ChatService {
     });
 
     let assistantContent = '';
-    const sourcesToSave = retrieval.isConfident ? retrieval.citations : [];
 
     // 3. Strict Abstention Guardrail: If no evidence or low confidence, abstain directly
     if (!retrieval.isConfident || retrieval.chunks.length === 0) {
@@ -157,6 +156,11 @@ export class ChatService {
         promptContext.userPrompt,
       );
     }
+
+    // Filter candidate sources to ONLY those cited in the answer
+    const sourcesToSave = retrieval.isConfident
+      ? this.filterCitedSources(assistantContent, retrieval.citations)
+      : [];
 
     // 5. Save assistant message
     const [assistantMessage] = await this.db
@@ -252,7 +256,8 @@ export class ChatService {
       .returning();
 
     if (retrieval.isConfident) {
-      for (const source of retrieval.citations) {
+      const sourcesToSave = this.filterCitedSources(fullAnswer, retrieval.citations);
+      for (const source of sourcesToSave) {
         await this.db.insert(messageSources).values({
           messageId: assistantMessage.id,
           chunkId: source.chunkId,
@@ -265,5 +270,50 @@ export class ChatService {
     }
 
     onChunk(JSON.stringify({ type: 'done', messageId: assistantMessage.id }));
+  }
+
+  /**
+   * Filters candidate retrieval sources to only include chunks that are
+   * specifically cited in the generated answer (e.g. [Source 1], Source 2).
+   */
+  private filterCitedSources(content: string, citations: MessageSourceCitation[]): MessageSourceCitation[] {
+    if (!citations || citations.length === 0) return [];
+
+    // If answer is an abstention or unable to answer, no sources were used
+    if (
+      content.includes(PromptBuilderService.ABSTENTION_MESSAGE) ||
+      content.toLowerCase().includes('cannot find sufficient information')
+    ) {
+      return [];
+    }
+
+    const citedRanks = new Set<number>();
+
+    // 1. Match bracketed citations e.g. [Source 1], [Source 2], [Source 1, 2], [Source 1, Source 2]
+    const bracketMatches = content.matchAll(/\[(?:Source\s*)?([0-9,\s]+)\]/gi);
+    for (const m of bracketMatches) {
+      const parts = m[1].split(',');
+      for (const p of parts) {
+        const num = parseInt(p.trim().replace(/^source\s*/i, ''), 10);
+        if (!isNaN(num)) citedRanks.add(num);
+      }
+    }
+
+    // 2. Match plain "Source 1", "Source 2"
+    const plainMatches = content.matchAll(/Source\s+(\d+)/gi);
+    for (const m of plainMatches) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) citedRanks.add(num);
+    }
+
+    // If specific sources were cited in the answer, return ONLY those cited sources
+    if (citedRanks.size > 0) {
+      const filtered = citations.filter((c) => citedRanks.has(c.rank));
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+
+    return citations;
   }
 }

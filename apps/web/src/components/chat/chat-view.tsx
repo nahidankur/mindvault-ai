@@ -37,12 +37,33 @@ export function ChatView() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // If there are conversations and no active chat selected, pick the latest one
-  useEffect(() => {
-    if (!activeConversationId && conversations.length > 0) {
-      setActiveConversationId(conversations[0].id);
+  // Filter sources to only those actually cited in the assistant message content
+  const getCitedSources = (msg: ChatMessageUI): MessageSourceCitation[] => {
+    if (!msg.sources || msg.sources.length === 0) return [];
+
+    const citedRanks = new Set<number>();
+    const bracketMatches = msg.content.matchAll(/\[(?:Source\s*)?([0-9,\s]+)\]/gi);
+    for (const m of bracketMatches) {
+      const parts = m[1].split(',');
+      for (const p of parts) {
+        const num = parseInt(p.trim().replace(/^source\s*/i, ''), 10);
+        if (!isNaN(num)) citedRanks.add(num);
+      }
     }
-  }, [conversations, activeConversationId, setActiveConversationId]);
+
+    const plainMatches = msg.content.matchAll(/Source\s+(\d+)/gi);
+    for (const m of plainMatches) {
+      const num = parseInt(m[1], 10);
+      if (!isNaN(num)) citedRanks.add(num);
+    }
+
+    if (citedRanks.size > 0) {
+      const filtered = msg.sources.filter((s) => citedRanks.has(s.rank));
+      if (filtered.length > 0) return filtered;
+    }
+
+    return msg.sources;
+  };
 
   // Load messages when activeConversationId changes
   useEffect(() => {
@@ -244,25 +265,30 @@ export function ChatView() {
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
 
-                {/* Citations Pill Bar */}
-                {msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">
-                      Sources:
-                    </span>
-                    {msg.sources.map((source) => (
-                      <button
-                        key={source.chunkId}
-                        onClick={() => setSelectedCitation(source)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
-                        title={source.snippet}
-                      >
-                        <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
-                        <span>Source {source.rank}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Citations Pill Bar - ONLY display the sources cited in the answer */}
+                {(() => {
+                  const displayedSources = getCitedSources(msg);
+                  if (displayedSources.length === 0) return null;
+
+                  return (
+                    <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">
+                        Sources:
+                      </span>
+                      {displayedSources.map((source) => (
+                        <button
+                          key={source.chunkId}
+                          onClick={() => setSelectedCitation(source)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
+                          title={source.snippet}
+                        >
+                          <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
+                          <span>Source {source.rank}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {msg.role === 'user' && (

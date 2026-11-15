@@ -154,7 +154,11 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={handleStartNewChat}
-                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:bg-indigo-600/10 transition group"
+                      className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium transition group ${
+                        pathname === '/dashboard/chat' && !activeConversationId
+                          ? 'bg-indigo-600/20 text-indigo-200 border border-indigo-500/30'
+                          : 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-600/10'
+                      }`}
                     >
                       <span className="flex items-center gap-1.5">
                         <Plus className="w-3.5 h-3.5" />
