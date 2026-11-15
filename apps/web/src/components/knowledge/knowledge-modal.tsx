@@ -143,24 +143,24 @@ export function KnowledgeModal({
 
   return (
     <div
-      className="fixed inset-y-0 right-0 left-0 md:left-64 z-30 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-y-0 right-0 left-0 md:left-64 z-30 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
-          <div className="flex items-center gap-3 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
-              <FileText className="w-5 h-5" />
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2 sm:pr-4">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-slate-100 truncate">
+              <h2 className="text-sm sm:text-base font-semibold text-slate-100 truncate">
                 {isEditing ? 'Edit Knowledge Note' : item?.title || 'Loading Note...'}
               </h2>
               {item && !isEditing && (
-                <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 font-mono">
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[11px] sm:text-xs text-slate-400 font-mono">
                   {item.status === 'READY' && (
                     <span className="inline-flex items-center gap-1 text-emerald-400">
                       <CheckCircle className="w-3 h-3" />
@@ -180,20 +180,20 @@ export function KnowledgeModal({
                     </span>
                   )}
                   <span>•</span>
-                  <span>{item.wordCount} words</span>
+                  <span>{item.wordCount}w</span>
                   <span>•</span>
-                  <span>{item.characterCount} chars</span>
+                  <span>{item.characterCount}c</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {item && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -203,6 +203,7 @@ export function KnowledgeModal({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+              aria-label="Close modal"
             >
               <X className="w-4 h-4" />
             </button>
@@ -211,14 +212,14 @@ export function KnowledgeModal({
 
         {/* Error notification */}
         {error && (
-          <div className="px-6 py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-xs text-rose-400 flex items-center gap-2">
+          <div className="px-4 py-2 sm:px-6 sm:py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-xs text-rose-400 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {isLoading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
               <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
@@ -265,7 +266,7 @@ export function KnowledgeModal({
                   </span>
                 </div>
                 <textarea
-                  rows={14}
+                  rows={9}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Enter knowledge content..."
@@ -276,21 +277,21 @@ export function KnowledgeModal({
             </form>
           ) : item ? (
             /* View Mode */
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Metadata Badges */}
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-400">
                 {activeCollection && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
                     <Layers className="w-3.5 h-3.5" />
                     <span>{activeCollection.name}</span>
                   </div>
                 )}
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/60 border border-slate-700/50 text-slate-300">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-slate-800/60 border border-slate-700/50 text-slate-300">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <span>Created {new Date(item.createdAt).toLocaleDateString()}</span>
                 </div>
                 {item.updatedAt !== item.createdAt && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/40 text-slate-400">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-slate-800/40 text-slate-400">
                     <span>Updated {new Date(item.updatedAt).toLocaleDateString()}</span>
                   </div>
                 )}
@@ -300,34 +301,35 @@ export function KnowledgeModal({
                   <button
                     type="button"
                     onClick={() => setViewTab('preview')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition ${
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium transition ${
                       viewTab === 'preview'
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <Eye className="w-3 h-3" />
-                    <span>Formatted</span>
+                    <span className="hidden sm:inline">Formatted</span>
+                    <span className="sm:hidden">Format</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewTab('raw')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition ${
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-xs font-medium transition ${
                       viewTab === 'raw'
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <FileText className="w-3 h-3" />
-                    <span>Raw Markdown</span>
+                    <span>Raw</span>
                   </button>
                 </div>
               </div>
 
               {/* Content Viewer */}
-              <div className="p-5 rounded-xl border border-slate-800 bg-slate-950/70 text-slate-200">
+              <div className="p-3.5 sm:p-5 rounded-xl border border-slate-800 bg-slate-950/70 text-slate-200">
                 {viewTab === 'preview' ? (
-                  <div className="prose prose-invert prose-indigo max-w-none text-sm leading-relaxed space-y-3 font-sans">
+                  <div className="prose prose-invert prose-indigo max-w-none text-xs sm:text-sm leading-relaxed space-y-3 font-sans break-words">
                     <ReactMarkdown>{item.content}</ReactMarkdown>
                   </div>
                 ) : (
@@ -341,7 +343,7 @@ export function KnowledgeModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-800/80 bg-slate-950/50 flex items-center justify-between">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-800/80 bg-slate-950/50 flex flex-wrap items-center justify-between gap-2">
           {isEditing ? (
             <>
               <button
@@ -369,7 +371,7 @@ export function KnowledgeModal({
                 {isSaving ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Saving & Ingesting...</span>
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
@@ -386,16 +388,16 @@ export function KnowledgeModal({
                   type="button"
                   onClick={handleReindex}
                   disabled={isReindexing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-indigo-400 hover:bg-slate-800 transition border border-slate-800"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-indigo-400 hover:bg-slate-800 transition border border-slate-800"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isReindexing ? 'animate-spin' : ''}`} />
-                  <span>Re-index Chunks</span>
+                  <span>Re-index</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition border border-rose-500/20"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition border border-rose-500/20"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete</span>
@@ -405,7 +407,7 @@ export function KnowledgeModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+                className="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
               >
                 Close
               </button>

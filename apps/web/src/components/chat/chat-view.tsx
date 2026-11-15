@@ -132,20 +132,20 @@ export function ChatView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-semibold text-slate-200">Grounded Knowledge Assistant</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+      <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur shrink-0">
+        <div className="flex items-center gap-2 min-w-0 mr-2">
+          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="text-sm font-semibold text-slate-200 truncate">Grounded Assistant</span>
+          <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono shrink-0">
             Zero Hallucination
           </span>
         </div>
 
         <button
           onClick={createNewConversation}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Chat</span>
@@ -153,9 +153,9 @@ export function ChatView() {
       </header>
 
       {/* Messages List Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
+          <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto p-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
               <Bot className="w-6 h-6" />
             </div>
@@ -170,36 +170,36 @@ export function ChatView() {
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex gap-3 max-w-3xl ${
+              className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl md:max-w-3xl ${
                 msg.role === 'user' ? 'ml-auto justify-end' : 'mr-auto justify-start'
               }`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
-                  <Bot className="w-4 h-4" />
+                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
+                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               )}
 
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                className={`rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm leading-relaxed overflow-hidden ${
                   msg.role === 'user'
                     ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
                     : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
                 }`}
               >
-                <div className="prose prose-invert prose-sm max-w-none">
+                <div className="prose prose-invert prose-xs sm:prose-sm max-w-none break-words">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
 
                 {/* Citations Pill Bar */}
                 {msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400 font-medium mr-1">Sources:</span>
+                  <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mr-1">Sources:</span>
                     {msg.sources.map((source) => (
                       <button
                         key={source.chunkId}
                         onClick={() => setSelectedCitation(source)}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer"
                         title={source.snippet}
                       >
                         <Bookmark className="w-2.5 h-2.5 text-indigo-400" />
@@ -211,8 +211,8 @@ export function ChatView() {
               </div>
 
               {msg.role === 'user' && (
-                <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 mt-1 text-slate-300">
-                  <User className="w-4 h-4" />
+                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 mt-1 text-slate-300">
+                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               )}
             </div>
@@ -220,13 +220,13 @@ export function ChatView() {
         )}
 
         {isLoading && (
-          <div className="flex gap-3 max-w-3xl mr-auto">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
-              <Bot className="w-4 h-4" />
+          <div className="flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-2xl mr-auto">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-1 text-indigo-400">
+              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2 text-xs text-slate-400">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-              <span>Searching knowledge vault and verifying citations...</span>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-bl-none px-3.5 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 text-xs text-slate-400">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
+              <span>Verifying citations & generating response...</span>
             </div>
           </div>
         )}
@@ -235,19 +235,20 @@ export function ChatView() {
       </div>
 
       {/* Input Form */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-900/30">
+      <div className="p-2.5 sm:p-4 border-t border-slate-800/80 bg-slate-900/30 shrink-0">
         <form onSubmit={handleSend} className="max-w-3xl mx-auto flex gap-2">
           <input
             type="text"
             value={inputQuestion}
             onChange={(e) => setInputQuestion(e.target.value)}
             placeholder="Ask a question about your saved notes..."
-            className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[42px]"
           />
           <button
             type="submit"
             disabled={!inputQuestion.trim() || isLoading}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition flex items-center justify-center shadow-md shadow-indigo-600/30"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition flex items-center justify-center shadow-md shadow-indigo-600/30 min-h-[42px] min-w-[42px]"
+            aria-label="Send message"
           >
             <Send className="w-4 h-4" />
           </button>

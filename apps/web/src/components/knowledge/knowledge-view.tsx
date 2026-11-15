@@ -100,38 +100,39 @@ export function KnowledgeView() {
   const charCount = content.length;
 
   return (
-    <div className="flex-1 flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 border-b border-slate-800/80 px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-indigo-400" />
-          <h1 className="text-sm font-semibold text-slate-200">Knowledge Vault Library</h1>
-          <span className="text-xs text-slate-500 font-mono">({items.length} items)</span>
+      <header className="h-14 border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between bg-slate-900/40 backdrop-blur shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+          <h1 className="text-sm font-semibold text-slate-200 truncate">Knowledge Vault Library</h1>
+          <span className="text-xs text-slate-500 font-mono shrink-0">({items.length})</span>
         </div>
 
         <button
           onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/30 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>{isCreating ? 'Cancel' : 'New Note / Article'}</span>
+          <span>{isCreating ? 'Cancel' : 'New Note'}</span>
+          <span className="hidden sm:inline">{!isCreating && ' / Article'}</span>
         </button>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Creator Form */}
         {isCreating && (
           <form
             onSubmit={handleCreate}
-            className="p-5 rounded-2xl border border-indigo-500/30 bg-slate-900/90 backdrop-blur space-y-4 max-w-3xl mx-auto shadow-xl"
+            className="p-4 sm:p-5 rounded-2xl border border-indigo-500/30 bg-slate-900/90 backdrop-blur space-y-4 max-w-3xl mx-auto shadow-xl"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-400" />
                 <span>Save New Knowledge</span>
               </h3>
-              <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
+              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400 font-mono">
                 <span>{charCount} chars</span>
                 <span>•</span>
                 <span>{wordCount} words</span>
@@ -167,7 +168,7 @@ export function KnowledgeView() {
             </div>
 
             <textarea
-              rows={8}
+              rows={7}
               placeholder="Paste research, meeting notes, or article content in Markdown format..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -194,7 +195,7 @@ export function KnowledgeView() {
                     <span>Indexing...</span>
                   </>
                 ) : (
-                  <span>Save & Ingest into Vault</span>
+                  <span>Save & Ingest</span>
                 )}
               </button>
             </div>
@@ -218,7 +219,7 @@ export function KnowledgeView() {
         {/* Notes Grid */}
         <div className="max-w-3xl mx-auto space-y-3">
           {items.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-slate-800 rounded-2xl">
+            <div className="p-6 sm:p-8 text-center border border-dashed border-slate-800 rounded-2xl">
               <FileText className="w-8 h-8 text-slate-600 mx-auto mb-2" />
               <p className="text-sm text-slate-400">No knowledge items saved yet.</p>
               <button
@@ -233,39 +234,39 @@ export function KnowledgeView() {
               <div
                 key={item.id}
                 onClick={() => setSelectedItemId(item.id)}
-                className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex items-center justify-between group cursor-pointer"
+                className="p-3.5 sm:p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/90 hover:border-indigo-500/40 transition-all flex items-center justify-between gap-3 group cursor-pointer"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors truncate max-w-full">
                       {item.title}
                     </h3>
                     {item.status === 'READY' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                         <CheckCircle className="w-2.5 h-2.5" />
                         <span>Ready</span>
                       </span>
                     )}
                     {item.status === 'INDEXING' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
                         <RefreshCw className="w-2.5 h-2.5 animate-spin" />
                         <span>Indexing</span>
                       </span>
                     )}
                     {item.status === 'FAILED' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
                         <AlertCircle className="w-2.5 h-2.5" />
                         <span>Failed</span>
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-500 font-mono">
+                  <p className="text-xs text-slate-500 font-mono truncate">
                     {item.wordCount} words • {item.characterCount} chars • {new Date(item.createdAt).toLocaleDateString()}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition">
+                <div className="flex items-center gap-1 sm:gap-2 opacity-80 group-hover:opacity-100 transition shrink-0">
                   <button
                     type="button"
                     onClick={(e) => {

@@ -13,6 +13,9 @@ interface AppState {
 
   isCitationDrawerOpen: boolean;
   setCitationDrawerOpen: (open: boolean) => void;
+
+  isMobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -31,4 +34,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   isCitationDrawerOpen: false,
   setCitationDrawerOpen: (open) => set({ isCitationDrawerOpen: open }),
+
+  isMobileSidebarOpen: false,
+  setMobileSidebarOpen: (open) => set({ isMobileSidebarOpen: open }),
 }));
